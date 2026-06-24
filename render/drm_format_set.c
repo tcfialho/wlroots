@@ -14,6 +14,7 @@ void wlr_drm_format_finish(struct wlr_drm_format *format) {
 	}
 
 	free(format->modifiers);
+	*format = (struct wlr_drm_format){0};
 }
 
 void wlr_drm_format_set_finish(struct wlr_drm_format_set *set) {
@@ -143,17 +144,20 @@ bool wlr_drm_format_add(struct wlr_drm_format *fmt, uint64_t modifier) {
 bool wlr_drm_format_copy(struct wlr_drm_format *dst, const struct wlr_drm_format *src) {
 	assert(src->len <= src->capacity);
 
-	uint64_t *modifiers = malloc(sizeof(*modifiers) * src->len);
+	size_t len = src->len;
+	uint32_t drm_format = src->format;
+
+	uint64_t *modifiers = malloc(sizeof(*modifiers) * len);
 	if (!modifiers) {
 		return false;
 	}
 
-	memcpy(modifiers, src->modifiers, sizeof(*modifiers) * src->len);
+	memcpy(modifiers, src->modifiers, sizeof(*modifiers) * len);
 
 	wlr_drm_format_finish(dst);
-	dst->capacity = src->len;
-	dst->len = src->len;
-	dst->format = src->format;
+	dst->capacity = len;
+	dst->len = len;
+	dst->format = drm_format;
 	dst->modifiers = modifiers;
 	return true;
 }
