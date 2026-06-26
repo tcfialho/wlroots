@@ -1892,6 +1892,14 @@ static bool construct_render_list_iterator(struct wlr_scene_node *node,
 		return false;
 	}
 
+	const pixman_box32_t *extents = pixman_region32_extents(&node->visible);
+	if (extents->x1 >= data->box.x + data->box.width ||
+			data->box.x >= extents->x2 ||
+			extents->y1 >= data->box.y + data->box.height ||
+			data->box.y >= extents->y2) {
+		return false;
+	}
+
 	// While rendering, the background should always be black. If we see a
 	// black rect, we can ignore rendering everything under the rect, and
 	// unless fractional scale is used even the rect itself (to avoid running
