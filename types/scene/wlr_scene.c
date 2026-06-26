@@ -2357,7 +2357,6 @@ bool wlr_scene_output_build_state(struct wlr_scene_output *scene_output,
 	list_con.render_list->size = 0;
 	scene_nodes_in_box(&scene_output->scene->tree.node, &list_con.box,
 		construct_render_list_iterator, &list_con);
-	array_realloc(list_con.render_list, list_con.render_list->size);
 
 	struct render_list_entry *list_data = list_con.render_list->data;
 	int list_len = list_con.render_list->size / sizeof(*list_data);

@@ -171,7 +171,12 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 	struct wlr_vk_command_buffer *render_cb = pass->command_buffer;
 	struct wlr_vk_render_buffer *render_buffer = pass->render_buffer;
 	struct wlr_vk_command_buffer *stage_cb = NULL;
+	VkSemaphoreSubmitInfoKHR render_wait_stack[64];
 	VkSemaphoreSubmitInfoKHR *render_wait = NULL;
+	VkImageMemoryBarrier acquire_barriers_stack[32];
+	VkImageMemoryBarrier release_barriers_stack[32];
+	VkImageMemoryBarrier *acquire_barriers = NULL;
+	VkImageMemoryBarrier *release_barriers = NULL;
 	bool device_lost = false;
 
 	if (pass->failed) {
@@ -310,19 +315,34 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 
 	size_t pass_textures_len = pass->textures.size / sizeof(struct wlr_vk_render_pass_texture);
 	size_t render_wait_cap = (1 + pass_textures_len) * WLR_DMABUF_MAX_PLANES;
-	render_wait = calloc(render_wait_cap, sizeof(*render_wait));
+	if (render_wait_cap <= 64) {
+		render_wait = render_wait_stack;
+	} else {
+		render_wait = calloc(render_wait_cap, sizeof(*render_wait));
+	}
 	if (render_wait == NULL) {
 		wlr_log_errno(WLR_ERROR, "Allocation failed");
 		goto error;
 	}
 
 	uint32_t barrier_count = wl_list_length(&renderer->foreign_textures) + 1;
-	VkImageMemoryBarrier *acquire_barriers = calloc(barrier_count, sizeof(*acquire_barriers));
-	VkImageMemoryBarrier *release_barriers = calloc(barrier_count, sizeof(*release_barriers));
+	if (barrier_count <= 32) {
+		acquire_barriers = acquire_barriers_stack;
+		release_barriers = release_barriers_stack;
+		memset(acquire_barriers, 0, barrier_count * sizeof(*acquire_barriers));
+		memset(release_barriers, 0, barrier_count * sizeof(*release_barriers));
+	} else {
+		acquire_barriers = calloc(barrier_count, sizeof(*acquire_barriers));
+		release_barriers = calloc(barrier_count, sizeof(*release_barriers));
+	}
 	if (acquire_barriers == NULL || release_barriers == NULL) {
 		wlr_log_errno(WLR_ERROR, "Allocation failed");
-		free(acquire_barriers);
-		free(release_barriers);
+		if (acquire_barriers != acquire_barriers_stack) {
+			free(acquire_barriers);
+		}
+		if (release_barriers != release_barriers_stack) {
+			free(release_barriers);
+		}
 		goto error;
 	}
 
@@ -497,8 +517,12 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL,
 		barrier_count, release_barriers);
 
-	free(acquire_barriers);
-	free(release_barriers);
+	if (acquire_barriers != acquire_barriers_stack) {
+		free(acquire_barriers);
+	}
+	if (release_barriers != release_barriers_stack) {
+		free(release_barriers);
+	}
 
 	// No semaphores needed here.
 	// We don't need a semaphore from the stage/transfer submission
@@ -600,7 +624,9 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 		goto error;
 	}
 
-	free(render_wait);
+	if (render_wait != render_wait_stack) {
+		free(render_wait);
+	}
 
 	vulkan_stage_mark_submit(renderer, render_timeline_point);
 
@@ -613,7 +639,9 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 	return true;
 
 error:
-	free(render_wait);
+	if (render_wait != render_wait_stack) {
+		free(render_wait);
+	}
 	vulkan_reset_command_buffer(stage_cb);
 	vulkan_reset_command_buffer(render_cb);
 	wlr_buffer_unlock(render_buffer->wlr_buffer);

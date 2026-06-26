@@ -42,6 +42,8 @@ static bool write_pixels(struct wlr_vk_texture *texture,
 		VkImageLayout old_layout, VkPipelineStageFlags src_stage,
 		VkAccessFlags src_access) {
 	struct wlr_vk_renderer *renderer = texture->renderer;
+	VkBufferImageCopy copies_stack[16];
+	VkBufferImageCopy *copies = NULL;
 
 	const struct wlr_pixel_format_info *format_info = drm_get_pixel_format_info(texture->format->drm);
 	assert(format_info);
@@ -64,7 +66,12 @@ static bool write_pixels(struct wlr_vk_texture *texture,
 		bsize += height * pixel_format_info_min_stride(format_info, width);
 	}
 
-	VkBufferImageCopy *copies = calloc((size_t)rects_len, sizeof(*copies));
+	if ((size_t)rects_len <= 16) {
+		copies = copies_stack;
+		memset(copies, 0, (size_t)rects_len * sizeof(*copies));
+	} else {
+		copies = calloc((size_t)rects_len, sizeof(*copies));
+	}
 	if (!copies) {
 		wlr_log(WLR_ERROR, "Failed to allocate image copy parameters");
 		return false;
@@ -74,7 +81,9 @@ static bool write_pixels(struct wlr_vk_texture *texture,
 	struct wlr_vk_buffer_span span = vulkan_get_stage_span(renderer, bsize, format_info->bytes_per_block);
 	if (!span.buffer || span.size != bsize) {
 		wlr_log(WLR_ERROR, "Failed to retrieve staging buffer");
-		free(copies);
+		if (copies != copies_stack) {
+			free(copies);
+		}
 		return false;
 	}
 	char *map = (char*)span.buffer->cpu_mapping + span.offset;
@@ -130,7 +139,9 @@ static bool write_pixels(struct wlr_vk_texture *texture,
 	// will be executed before next frame
 	VkCommandBuffer cb = vulkan_record_stage_cb(renderer);
 	if (cb == VK_NULL_HANDLE) {
-		free(copies);
+		if (copies != copies_stack) {
+			free(copies);
+		}
 		return false;
 	}
 
@@ -148,7 +159,9 @@ static bool write_pixels(struct wlr_vk_texture *texture,
 		VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_SHADER_READ_BIT);
 	texture->last_used_cb = renderer->stage.cb;
 
-	free(copies);
+	if (copies != copies_stack) {
+		free(copies);
+	}
 
 	return true;
 }

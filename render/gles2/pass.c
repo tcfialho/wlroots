@@ -234,15 +234,25 @@ static void render_pass_add_texture(struct wlr_render_pass *wlr_pass,
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(texture->target, texture->tex);
 
-	switch (options->filter_mode) {
-	case WLR_SCALE_FILTER_BILINEAR:
-		glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		break;
-	case WLR_SCALE_FILTER_NEAREST:
-		glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		break;
+	GLenum min_filter = GL_LINEAR;
+	GLenum mag_filter = GL_LINEAR;
+	if (options->filter_mode == WLR_SCALE_FILTER_NEAREST) {
+		min_filter = GL_NEAREST;
+		mag_filter = GL_NEAREST;
+	}
+
+	GLenum *cached_min = texture->buffer != NULL ?
+		&texture->buffer->cached_min_filter : &texture->cached_min_filter;
+	GLenum *cached_mag = texture->buffer != NULL ?
+		&texture->buffer->cached_mag_filter : &texture->cached_mag_filter;
+
+	if (*cached_min != min_filter) {
+		glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, min_filter);
+		*cached_min = min_filter;
+	}
+	if (*cached_mag != mag_filter) {
+		glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, mag_filter);
+		*cached_mag = mag_filter;
 	}
 
 	glUniform1i(shader->tex, 0);

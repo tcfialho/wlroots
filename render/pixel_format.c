@@ -223,7 +223,137 @@ static const size_t pixel_format_info_size =
 static const size_t opaque_pixel_formats_size =
 	sizeof(opaque_pixel_formats) / sizeof(opaque_pixel_formats[0]);
 
+static_assert(pixel_format_info[0].drm_format == DRM_FORMAT_XRGB8888, "DRM format index mismatch");
+static_assert(pixel_format_info[1].drm_format == DRM_FORMAT_ARGB8888, "DRM format index mismatch");
+static_assert(pixel_format_info[2].drm_format == DRM_FORMAT_XBGR8888, "DRM format index mismatch");
+static_assert(pixel_format_info[3].drm_format == DRM_FORMAT_ABGR8888, "DRM format index mismatch");
+static_assert(pixel_format_info[4].drm_format == DRM_FORMAT_RGBX8888, "DRM format index mismatch");
+static_assert(pixel_format_info[5].drm_format == DRM_FORMAT_RGBA8888, "DRM format index mismatch");
+static_assert(pixel_format_info[6].drm_format == DRM_FORMAT_BGRX8888, "DRM format index mismatch");
+static_assert(pixel_format_info[7].drm_format == DRM_FORMAT_BGRA8888, "DRM format index mismatch");
+static_assert(pixel_format_info[8].drm_format == DRM_FORMAT_R8, "DRM format index mismatch");
+static_assert(pixel_format_info[9].drm_format == DRM_FORMAT_R16F, "DRM format index mismatch");
+static_assert(pixel_format_info[10].drm_format == DRM_FORMAT_R32F, "DRM format index mismatch");
+static_assert(pixel_format_info[11].drm_format == DRM_FORMAT_GR88, "DRM format index mismatch");
+static_assert(pixel_format_info[12].drm_format == DRM_FORMAT_GR1616F, "DRM format index mismatch");
+static_assert(pixel_format_info[13].drm_format == DRM_FORMAT_GR3232F, "DRM format index mismatch");
+static_assert(pixel_format_info[14].drm_format == DRM_FORMAT_RGB888, "DRM format index mismatch");
+static_assert(pixel_format_info[15].drm_format == DRM_FORMAT_BGR888, "DRM format index mismatch");
+static_assert(pixel_format_info[16].drm_format == DRM_FORMAT_BGR161616, "DRM format index mismatch");
+static_assert(pixel_format_info[17].drm_format == DRM_FORMAT_BGR161616F, "DRM format index mismatch");
+static_assert(pixel_format_info[18].drm_format == DRM_FORMAT_BGR323232F, "DRM format index mismatch");
+static_assert(pixel_format_info[19].drm_format == DRM_FORMAT_RGBX4444, "DRM format index mismatch");
+static_assert(pixel_format_info[20].drm_format == DRM_FORMAT_RGBA4444, "DRM format index mismatch");
+static_assert(pixel_format_info[21].drm_format == DRM_FORMAT_BGRX4444, "DRM format index mismatch");
+static_assert(pixel_format_info[22].drm_format == DRM_FORMAT_BGRA4444, "DRM format index mismatch");
+static_assert(pixel_format_info[23].drm_format == DRM_FORMAT_RGBX5551, "DRM format index mismatch");
+static_assert(pixel_format_info[24].drm_format == DRM_FORMAT_RGBA5551, "DRM format index mismatch");
+static_assert(pixel_format_info[25].drm_format == DRM_FORMAT_BGRX5551, "DRM format index mismatch");
+static_assert(pixel_format_info[26].drm_format == DRM_FORMAT_BGRA5551, "DRM format index mismatch");
+static_assert(pixel_format_info[27].drm_format == DRM_FORMAT_XRGB1555, "DRM format index mismatch");
+static_assert(pixel_format_info[28].drm_format == DRM_FORMAT_ARGB1555, "DRM format index mismatch");
+static_assert(pixel_format_info[29].drm_format == DRM_FORMAT_RGB565, "DRM format index mismatch");
+static_assert(pixel_format_info[30].drm_format == DRM_FORMAT_BGR565, "DRM format index mismatch");
+static_assert(pixel_format_info[31].drm_format == DRM_FORMAT_XRGB2101010, "DRM format index mismatch");
+static_assert(pixel_format_info[32].drm_format == DRM_FORMAT_ARGB2101010, "DRM format index mismatch");
+static_assert(pixel_format_info[33].drm_format == DRM_FORMAT_XBGR2101010, "DRM format index mismatch");
+static_assert(pixel_format_info[34].drm_format == DRM_FORMAT_ABGR2101010, "DRM format index mismatch");
+static_assert(pixel_format_info[35].drm_format == DRM_FORMAT_XBGR16161616F, "DRM format index mismatch");
+static_assert(pixel_format_info[36].drm_format == DRM_FORMAT_ABGR16161616F, "DRM format index mismatch");
+static_assert(pixel_format_info[37].drm_format == DRM_FORMAT_ABGR32323232F, "DRM format index mismatch");
+static_assert(pixel_format_info[38].drm_format == DRM_FORMAT_XBGR16161616, "DRM format index mismatch");
+static_assert(pixel_format_info[39].drm_format == DRM_FORMAT_ABGR16161616, "DRM format index mismatch");
+static_assert(pixel_format_info[40].drm_format == DRM_FORMAT_YVYU, "DRM format index mismatch");
+static_assert(pixel_format_info[41].drm_format == DRM_FORMAT_VYUY, "DRM format index mismatch");
+
 const struct wlr_pixel_format_info *drm_get_pixel_format_info(uint32_t fmt) {
+	switch (fmt) {
+	case DRM_FORMAT_XRGB8888:
+		return &pixel_format_info[0];
+	case DRM_FORMAT_ARGB8888:
+		return &pixel_format_info[1];
+	case DRM_FORMAT_XBGR8888:
+		return &pixel_format_info[2];
+	case DRM_FORMAT_ABGR8888:
+		return &pixel_format_info[3];
+	case DRM_FORMAT_RGBX8888:
+		return &pixel_format_info[4];
+	case DRM_FORMAT_RGBA8888:
+		return &pixel_format_info[5];
+	case DRM_FORMAT_BGRX8888:
+		return &pixel_format_info[6];
+	case DRM_FORMAT_BGRA8888:
+		return &pixel_format_info[7];
+	case DRM_FORMAT_R8:
+		return &pixel_format_info[8];
+	case DRM_FORMAT_R16F:
+		return &pixel_format_info[9];
+	case DRM_FORMAT_R32F:
+		return &pixel_format_info[10];
+	case DRM_FORMAT_GR88:
+		return &pixel_format_info[11];
+	case DRM_FORMAT_GR1616F:
+		return &pixel_format_info[12];
+	case DRM_FORMAT_GR3232F:
+		return &pixel_format_info[13];
+	case DRM_FORMAT_RGB888:
+		return &pixel_format_info[14];
+	case DRM_FORMAT_BGR888:
+		return &pixel_format_info[15];
+	case DRM_FORMAT_BGR161616:
+		return &pixel_format_info[16];
+	case DRM_FORMAT_BGR161616F:
+		return &pixel_format_info[17];
+	case DRM_FORMAT_BGR323232F:
+		return &pixel_format_info[18];
+	case DRM_FORMAT_RGBX4444:
+		return &pixel_format_info[19];
+	case DRM_FORMAT_RGBA4444:
+		return &pixel_format_info[20];
+	case DRM_FORMAT_BGRX4444:
+		return &pixel_format_info[21];
+	case DRM_FORMAT_BGRA4444:
+		return &pixel_format_info[22];
+	case DRM_FORMAT_RGBX5551:
+		return &pixel_format_info[23];
+	case DRM_FORMAT_RGBA5551:
+		return &pixel_format_info[24];
+	case DRM_FORMAT_BGRX5551:
+		return &pixel_format_info[25];
+	case DRM_FORMAT_BGRA5551:
+		return &pixel_format_info[26];
+	case DRM_FORMAT_XRGB1555:
+		return &pixel_format_info[27];
+	case DRM_FORMAT_ARGB1555:
+		return &pixel_format_info[28];
+	case DRM_FORMAT_RGB565:
+		return &pixel_format_info[29];
+	case DRM_FORMAT_BGR565:
+		return &pixel_format_info[30];
+	case DRM_FORMAT_XRGB2101010:
+		return &pixel_format_info[31];
+	case DRM_FORMAT_ARGB2101010:
+		return &pixel_format_info[32];
+	case DRM_FORMAT_XBGR2101010:
+		return &pixel_format_info[33];
+	case DRM_FORMAT_ABGR2101010:
+		return &pixel_format_info[34];
+	case DRM_FORMAT_XBGR16161616F:
+		return &pixel_format_info[35];
+	case DRM_FORMAT_ABGR16161616F:
+		return &pixel_format_info[36];
+	case DRM_FORMAT_ABGR32323232F:
+		return &pixel_format_info[37];
+	case DRM_FORMAT_XBGR16161616:
+		return &pixel_format_info[38];
+	case DRM_FORMAT_ABGR16161616:
+		return &pixel_format_info[39];
+	case DRM_FORMAT_YVYU:
+		return &pixel_format_info[40];
+	case DRM_FORMAT_VYUY:
+		return &pixel_format_info[41];
+	}
+
 	for (size_t i = 0; i < pixel_format_info_size; ++i) {
 		if (pixel_format_info[i].drm_format == fmt) {
 			return &pixel_format_info[i];
@@ -300,6 +430,20 @@ bool pixel_format_info_check_stride(const struct wlr_pixel_format_info *fmt,
 }
 
 bool pixel_format_has_alpha(uint32_t fmt) {
+	switch (fmt) {
+	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_XBGR8888:
+	case DRM_FORMAT_RGBX8888:
+	case DRM_FORMAT_BGRX8888:
+	case DRM_FORMAT_R8:
+	case DRM_FORMAT_GR88:
+	case DRM_FORMAT_RGB888:
+	case DRM_FORMAT_BGR888:
+	case DRM_FORMAT_RGB565:
+	case DRM_FORMAT_BGR565:
+		return false;
+	}
+
 	for (size_t i = 0; i < opaque_pixel_formats_size; i++) {
 		if (fmt == opaque_pixel_formats[i]) {
 			return false;
