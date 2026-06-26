@@ -194,11 +194,9 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 		int height = pass->render_buffer->wlr_buffer->height;
 
 		struct wlr_box output_box = { 0, 0, width, height };
-		float proj[9], final_matrix[9];
-		wlr_matrix_identity(proj);
+		float final_matrix[9];
 		wlr_matrix_project_box(final_matrix, &output_box,
-			WL_OUTPUT_TRANSFORM_NORMAL, proj);
-		wlr_matrix_multiply(final_matrix, pass->projection, final_matrix);
+			WL_OUTPUT_TRANSFORM_NORMAL, pass->projection);
 
 		struct wlr_vk_vert_pcr_data vert_pcr_data = {
 			.uv_off = { 0, 0 },
@@ -675,10 +673,8 @@ static void render_pass_add_rect(struct wlr_render_pass *wlr_pass,
 
 	switch (options->blend_mode) {
 	case WLR_RENDER_BLEND_MODE_PREMULTIPLIED:;
-		float proj[9], matrix[9];
-		wlr_matrix_identity(proj);
-		wlr_matrix_project_box(matrix, &box, WL_OUTPUT_TRANSFORM_NORMAL, proj);
-		wlr_matrix_multiply(matrix, pass->projection, matrix);
+		float matrix[9];
+		wlr_matrix_project_box(matrix, &box, WL_OUTPUT_TRANSFORM_NORMAL, pass->projection);
 
 		struct wlr_vk_pipeline *pipe = setup_get_or_create_pipeline(
 			pass->render_setup,
@@ -779,10 +775,8 @@ static void render_pass_add_texture(struct wlr_render_pass *wlr_pass,
 	wlr_render_texture_options_get_dst_box(options, &dst_box);
 	float alpha = wlr_render_texture_options_get_alpha(options);
 
-	float proj[9], matrix[9];
-	wlr_matrix_identity(proj);
-	wlr_matrix_project_box(matrix, &dst_box, options->transform, proj);
-	wlr_matrix_multiply(matrix, pass->projection, matrix);
+	float matrix[9];
+	wlr_matrix_project_box(matrix, &dst_box, options->transform, pass->projection);
 
 	pixman_region32_t clip;
 	if (options->clip) {
