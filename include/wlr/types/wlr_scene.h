@@ -92,6 +92,11 @@ struct wlr_scene_tree {
 	struct wlr_scene_node node;
 
 	struct wl_list children; // wlr_scene_node.link
+
+	struct {
+		struct wlr_box subtree_bounds; // relative to node
+		bool bounds_dirty;
+	} WLR_PRIVATE;
 };
 
 /** The root scene-graph node. */
@@ -99,6 +104,7 @@ struct wlr_scene {
 	struct wlr_scene_tree tree;
 
 	struct wl_list outputs; // wlr_scene_output.link
+	struct wl_list buffers; // wlr_scene_buffer.scene_link
 
 	// May be NULL
 	struct wlr_linux_dmabuf_v1 *linux_dmabuf_v1;
@@ -197,6 +203,8 @@ struct wlr_scene_buffer {
 	enum wlr_color_range color_range;
 
 	struct {
+		struct wl_list scene_link; // wlr_scene.buffers
+
 		uint64_t active_outputs;
 		struct wlr_texture *texture;
 		struct wlr_linux_dmabuf_feedback_v1_init_options prev_feedback_options;
