@@ -55,26 +55,18 @@ static float color_to_linear_premult(float non_linear, float alpha) {
 	return (alpha == 0) ? 0 : color_to_linear(non_linear / alpha) * alpha;
 }
 
-static void encode_proj_matrix(const float mat3[9], float mat4[4][4]) {
-	float result[4][4] = {
-		{ mat3[0], mat3[1], 0, mat3[2] },
-		{ mat3[3], mat3[4], 0, mat3[5] },
-		{ 0, 0, 1, 0 },
-		{ 0, 0, 0, 1 },
-	};
-
-	memcpy(mat4, result, sizeof(result));
+static inline void encode_proj_matrix(const float mat3[9], float mat4[4][4]) {
+	mat4[0][0] = mat3[0]; mat4[0][1] = mat3[1]; mat4[0][2] = 0.0f; mat4[0][3] = mat3[2];
+	mat4[1][0] = mat3[3]; mat4[1][1] = mat3[4]; mat4[1][2] = 0.0f; mat4[1][3] = mat3[5];
+	mat4[2][0] = 0.0f;    mat4[2][1] = 0.0f;    mat4[2][2] = 1.0f; mat4[2][3] = 0.0f;
+	mat4[3][0] = 0.0f;    mat4[3][1] = 0.0f;    mat4[3][2] = 0.0f; mat4[3][3] = 1.0f;
 }
 
-static void encode_color_matrix(const float mat3[9], float mat4[4][4]) {
-	float result[4][4] = {
-		{ mat3[0], mat3[1], mat3[2], 0 },
-		{ mat3[3], mat3[4], mat3[5], 0 },
-		{ mat3[6], mat3[7], mat3[8], 0 },
-		{ 0, 0, 0, 0 },
-	};
-
-	memcpy(mat4, result, sizeof(result));
+static inline void encode_color_matrix(const float mat3[9], float mat4[4][4]) {
+	mat4[0][0] = mat3[0]; mat4[0][1] = mat3[1]; mat4[0][2] = mat3[2]; mat4[0][3] = 0.0f;
+	mat4[1][0] = mat3[3]; mat4[1][1] = mat3[4]; mat4[1][2] = mat3[5]; mat4[1][3] = 0.0f;
+	mat4[2][0] = mat3[6]; mat4[2][1] = mat3[7]; mat4[2][2] = mat3[8]; mat4[2][3] = 0.0f;
+	mat4[3][0] = 0.0f;    mat4[3][1] = 0.0f;    mat4[3][2] = 0.0f;    mat4[3][3] = 0.0f;
 }
 
 static void render_pass_destroy(struct wlr_vk_render_pass *pass) {
@@ -722,14 +714,16 @@ static void render_pass_add_rect(struct wlr_render_pass *wlr_pass,
 			pass->failed = true;
 			break;
 		}
+		const float inv_w = 1.0f / (float)box.width;
+		const float inv_h = 1.0f / (float)box.height;
 		float *instance_data = (float *)((char *)span.buffer->cpu_mapping + span.offset);
 		for (int i = 0; i < clip_rects_len; i++) {
 			const pixman_box32_t *rect = &clip_rects[i];
 			render_pass_mark_box_updated(pass, rect);
-			instance_data[i * 4 + 0] = (float)(rect->x1 - box.x) / box.width;
-			instance_data[i * 4 + 1] = (float)(rect->y1 - box.y) / box.height;
-			instance_data[i * 4 + 2] = (float)(rect->x2 - rect->x1) / box.width;
-			instance_data[i * 4 + 3] = (float)(rect->y2 - rect->y1) / box.height;
+			instance_data[i * 4 + 0] = (float)(rect->x1 - box.x) * inv_w;
+			instance_data[i * 4 + 1] = (float)(rect->y1 - box.y) * inv_h;
+			instance_data[i * 4 + 2] = (float)(rect->x2 - rect->x1) * inv_w;
+			instance_data[i * 4 + 3] = (float)(rect->y2 - rect->y1) * inv_h;
 		}
 
 		struct wlr_vk_vert_pcr_data vert_pcr_data = {
@@ -831,14 +825,16 @@ static void render_pass_add_texture(struct wlr_render_pass *wlr_pass,
 		return;
 	}
 
+	const float inv_tex_w = 1.0f / (float)options->texture->width;
+	const float inv_tex_h = 1.0f / (float)options->texture->height;
 	struct wlr_vk_vert_pcr_data vert_pcr_data = {
 		.uv_off = {
-			src_box.x / options->texture->width,
-			src_box.y / options->texture->height,
+			(float)src_box.x * inv_tex_w,
+			(float)src_box.y * inv_tex_h,
 		},
 		.uv_size = {
-			src_box.width / options->texture->width,
-			src_box.height / options->texture->height,
+			(float)src_box.width * inv_tex_w,
+			(float)src_box.height * inv_tex_h,
 		},
 	};
 	encode_proj_matrix(matrix, vert_pcr_data.mat4);
@@ -947,16 +943,18 @@ static void render_pass_add_texture(struct wlr_render_pass *wlr_pass,
 		VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vert_pcr_data),
 		sizeof(frag_pcr_data), &frag_pcr_data);
 
+	const double inv_w = 1.0 / (double)dst_box.width;
+	const double inv_h = 1.0 / (double)dst_box.height;
 	float *instance_data = (float *)((char *)span.buffer->cpu_mapping + span.offset);
 	for (int i = 0; i < clip_rects_len; i++) {
 		const pixman_box32_t *rect = &clip_rects[i];
 		render_pass_mark_box_updated(pass, rect);
 
 		struct wlr_fbox norm = {
-			.x = (double)(rect->x1 - dst_box.x) / dst_box.width,
-			.y = (double)(rect->y1 - dst_box.y) / dst_box.height,
-			.width = (double)(rect->x2 - rect->x1) / dst_box.width,
-			.height = (double)(rect->y2 - rect->y1) / dst_box.height,
+			.x = (double)(rect->x1 - dst_box.x) * inv_w,
+			.y = (double)(rect->y1 - dst_box.y) * inv_h,
+			.width = (double)(rect->x2 - rect->x1) * inv_w,
+			.height = (double)(rect->y2 - rect->y1) * inv_h,
 		};
 
 		if (options->transform != WL_OUTPUT_TRANSFORM_NORMAL) {
