@@ -23,6 +23,7 @@ void wlr_render_pass_add_texture(struct wlr_render_pass *render_pass,
 		assert(box->x >= 0 && box->y >= 0 &&
 		(uint32_t)(box->x + box->width) <= options->texture->width &&
 		(uint32_t)(box->y + box->height) <= options->texture->height);
+		(void)box;
 	}
 
 	render_pass->impl->add_texture(render_pass, options);

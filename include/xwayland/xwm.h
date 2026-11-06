@@ -128,6 +128,7 @@ struct wlr_xwm {
 
 	struct wlr_xwayland_surface *focus_surface;
 	struct wlr_xwayland_surface *offered_focus;
+	bool offered_focus_taken;
 
 	// Surfaces in creation order
 	struct wl_list surfaces; // wlr_xwayland_surface.link

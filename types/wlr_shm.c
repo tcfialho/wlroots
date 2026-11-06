@@ -515,6 +515,8 @@ struct wlr_shm *wlr_shm_create(struct wl_display *display, uint32_t version,
 		}
 	}
 	assert(has_argb8888 && has_xrgb8888);
+	(void)has_argb8888;
+	(void)has_xrgb8888;
 
 	struct wlr_shm *shm = calloc(1, sizeof(*shm));
 	if (shm == NULL) {

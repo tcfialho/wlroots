@@ -302,6 +302,7 @@ xcb_void_cookie_t xwm_send_event_with_size(xcb_connection_t *c,
 		return xcb_send_event(c, propagate, destination, event_mask, buf);
 	} else {
 		assert(false && "Event too long");
+		abort();
 	}
 }
 
@@ -433,6 +434,7 @@ static void xwm_set_focused_window(struct wlr_xwm *xwm,
 	xwm->focus_surface = xsurface;
 	// cancel any pending focus offer
 	xwm->offered_focus = xsurface;
+	xwm->offered_focus_taken = false;
 
 	if (xsurface == unfocus_surface) {
 		return;
@@ -456,12 +458,14 @@ void wlr_xwayland_surface_offer_focus(struct wlr_xwayland_surface *xsurface) {
 	}
 
 	struct wlr_xwm *xwm = xsurface->xwm;
+	// Authorize a click-initiated handoff even for passive X11 clients.
+	// Their popup can take focus before the WM confirms its parent.
+	xwm->offered_focus = xsurface;
+	xwm->offered_focus_taken = false;
 	if (!xwm_atoms_contains(xwm, xsurface->protocols,
 			xsurface->protocols_len, WM_TAKE_FOCUS)) {
 		return;
 	}
-
-	xwm->offered_focus = xsurface;
 
 	xcb_client_message_data_t message_data = { 0 };
 	message_data.data32[0] = xwm->atoms[WM_TAKE_FOCUS];
@@ -477,7 +481,10 @@ static void xwm_surface_activate(struct wlr_xwm *xwm,
 		return;
 	}
 
-	if (xsurface != xwm->focus_surface && xsurface != xwm->offered_focus) {
+	bool accepted_offer = xsurface && xsurface == xwm->offered_focus &&
+		(xwm->offered_focus_taken || xwm_atoms_contains(xwm, xsurface->protocols,
+			xsurface->protocols_len, WM_TAKE_FOCUS));
+	if (xsurface != xwm->focus_surface && !accepted_offer) {
 		xwm_focus_window(xwm, xsurface);
 	}
 
@@ -1949,6 +1956,7 @@ static void xwm_handle_focus_in(struct wlr_xwm *xwm,
 	// https://github.com/swaywm/sway/issues/1865
 	if (xsurface && ((xwm->focus_surface && xsurface->pid == xwm->focus_surface->pid) ||
 			(xwm->offered_focus && xsurface->pid == xwm->offered_focus->pid))) {
+		xwm->offered_focus_taken = true;
 		xwm_set_focused_window(xwm, xsurface);
 		wl_signal_emit_mutable(&xsurface->events.focus_in, NULL);
 	} else {

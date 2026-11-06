@@ -16,6 +16,7 @@ void wlr_buffer_init(struct wlr_buffer *buffer,
 		.impl = impl,
 		.width = width,
 		.height = height,
+		.opaque_cached = -1,
 	};
 
 	wl_signal_init(&buffer->events.destroy);
@@ -108,12 +109,18 @@ bool wlr_buffer_get_shm(struct wlr_buffer *buffer,
 }
 
 bool wlr_buffer_is_opaque(struct wlr_buffer *buffer) {
+	if (buffer->opaque_cached >= 0) {
+		return buffer->opaque_cached;
+	}
+
 	void *data;
 	uint32_t format = buffer_get_drm_format(buffer);
 	size_t stride;
 
 	if (format != DRM_FORMAT_INVALID) {
-		// pass
+		bool opaque = !pixel_format_has_alpha(format);
+		buffer->opaque_cached = opaque;
+		return opaque;
 	} else if (wlr_buffer_begin_data_ptr_access(buffer,
 			WLR_BUFFER_DATA_PTR_ACCESS_READ, &data, &format, &stride)) {
 		bool opaque = false;

@@ -775,6 +775,7 @@ static void head_send_state(struct wlr_output_head_v1 *head,
 			}
 		}
 		assert(found);
+		(void)found;
 
 		if (head->state.mode == NULL) {
 			// Fake a single output mode if output doesn't support modes

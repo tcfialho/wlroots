@@ -977,6 +977,7 @@ struct wlr_color_manager_v1 *wlr_color_manager_v1_create(struct wl_display *disp
 		}
 	}
 	assert(has_perceptual_render_intent);
+	(void)has_perceptual_render_intent;
 
 	for (size_t i = 0; i < options->transfer_functions_len; i++) {
 		assert(options->transfer_functions[i] != WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB);

@@ -45,6 +45,8 @@ add_project_arguments(cc.get_supported_arguments([
 	'-Wmissing-prototypes',
 	'-Walloca',
 
+	'-fno-semantic-interposition',
+
 	'-Wno-missing-braces',
 	'-Wno-missing-field-initializers',
 	'-Wno-unused-parameter',
@@ -153,7 +155,10 @@ lib_wlr = library(
 	dependencies: wlr_deps,
 	include_directories: [wlr_inc],
 	install: true,
-	link_args: symbols_flag,
+	link_args: [symbols_flag] + cc.get_supported_link_arguments([
+		'-Wl,-Bsymbolic-functions',
+		'-Wl,--emit-relocs',
+	]),
 	link_depends: symbols_file,
 )
 

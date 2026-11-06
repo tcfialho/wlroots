@@ -131,6 +131,8 @@ static void xwm_dnd_send_drop(struct wlr_xwm *xwm, uint32_t time) {
 	assert(drag != NULL);
 	struct wlr_xwayland_surface *dest = xwm->drag_focus;
 	assert(dest != NULL);
+	(void)drag;
+	(void)dest;
 
 	xcb_client_message_data_t data = { 0 };
 	data.data32[0] = xwm->dnd_selection.window;
@@ -144,6 +146,8 @@ static void xwm_dnd_send_leave(struct wlr_xwm *xwm) {
 	assert(drag != NULL);
 	struct wlr_xwayland_surface *dest = xwm->drag_focus;
 	assert(dest != NULL);
+	(void)drag;
+	(void)dest;
 
 	xcb_client_message_data_t data = { 0 };
 	data.data32[0] = xwm->dnd_selection.window;
