@@ -109,6 +109,9 @@ struct wlr_gles2_buffer {
 	GLuint fbo;
 	GLuint tex;
 
+	GLenum cached_min_filter;
+	GLenum cached_mag_filter;
+
 	struct wlr_addon addon;
 };
 
@@ -126,6 +129,8 @@ struct wlr_gles2_texture {
 	GLuint fbo;
 
 	bool has_alpha;
+	GLenum cached_min_filter;
+	GLenum cached_mag_filter;
 
 	uint32_t drm_format; // for mutable textures only, used to interpret upload data
 	struct wlr_gles2_buffer *buffer; // for DMA-BUF imports only

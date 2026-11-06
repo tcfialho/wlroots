@@ -157,6 +157,7 @@ static void test_reclaim_partial(void) {
 	const struct wlr_vk_stage_watermark *remaining = buf.watermarks.data;
 	assert(remaining[0].head == 200);
 	assert(remaining[0].timeline_point == 2);
+	(void)remaining;
 
 	stage_buffer_finish(&buf);
 }
@@ -181,6 +182,7 @@ static void test_reclaim_all(void) {
 }
 
 int main(void) {
+	(void)watermark_count;
 #ifdef NDEBUG
 	fprintf(stderr, "NDEBUG must be disabled for tests\n");
 	return 1;

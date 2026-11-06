@@ -349,7 +349,10 @@ struct wlr_xwayland_surface *wlr_xwayland_surface_try_from_wlr_surface(
 	struct wlr_surface *surface);
 
 /**
- * Offer focus by sending WM_TAKE_FOCUS to a client window supporting it.
+ * Register a compositor-approved focus offer. This permits a same-process
+ * popup to take X11 focus before the compositor confirms its parent window.
+ * Passive clients which do not take the offer still receive input focus on
+ * activation. For clients supporting it, also send WM_TAKE_FOCUS.
  * The client may accept or ignore the offer. If it accepts, the surface will
  * emit the focus_in signal notifying the compositor that it has received focus.
  *

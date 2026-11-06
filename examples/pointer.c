@@ -98,6 +98,7 @@ static void output_frame_notify(struct wl_listener *listener, void *data) {
 	struct wlr_output *wlr_output = sample_output->output;
 	struct wlr_renderer *renderer = state->renderer;
 	assert(renderer);
+	(void)renderer;
 
 	struct wlr_output_state output_state;
 	wlr_output_state_init(&output_state);

@@ -198,7 +198,10 @@ static bool init_mgpu_renderer(struct wlr_drm_backend *drm) {
 		return false;
 	}
 
-	wlr_drm_format_set_copy(&drm->mgpu_formats, texture_formats);
+	if (!wlr_drm_format_set_copy(&drm->mgpu_formats, texture_formats)) {
+		wlr_log(WLR_ERROR, "Failed to copy texture formats");
+		return false;
+	}
 	sanitize_mgpu_modifiers(&drm->mgpu_formats);
 	drm->backend.features.timeline = drm->backend.features.timeline &&
 		drm->mgpu_renderer.wlr_rend->features.timeline;

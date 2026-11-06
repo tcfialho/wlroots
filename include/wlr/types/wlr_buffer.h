@@ -63,6 +63,10 @@ struct wlr_buffer {
 	} events;
 
 	struct wlr_addon_set addons;
+
+	struct {
+		int8_t opaque_cached; // -1 = unknown
+	} WLR_PRIVATE;
 };
 
 /**

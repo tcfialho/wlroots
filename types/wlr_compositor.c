@@ -348,13 +348,17 @@ static void surface_state_move(struct wlr_surface_state *state,
 		next->buffer = NULL;
 	}
 	if (next->committed & WLR_SURFACE_STATE_SURFACE_DAMAGE) {
-		pixman_region32_copy(&state->surface_damage, &next->surface_damage);
+		pixman_region32_t tmp = state->surface_damage;
+		state->surface_damage = next->surface_damage;
+		next->surface_damage = tmp;
 		pixman_region32_clear(&next->surface_damage);
 	} else {
 		pixman_region32_clear(&state->surface_damage);
 	}
 	if (next->committed & WLR_SURFACE_STATE_BUFFER_DAMAGE) {
-		pixman_region32_copy(&state->buffer_damage, &next->buffer_damage);
+		pixman_region32_t tmp = state->buffer_damage;
+		state->buffer_damage = next->buffer_damage;
+		next->buffer_damage = tmp;
 		pixman_region32_clear(&next->buffer_damage);
 	} else {
 		pixman_region32_clear(&state->buffer_damage);
@@ -960,6 +964,7 @@ void wlr_surface_unlock_cached(struct wlr_surface *surface, uint32_t seq) {
 		}
 	}
 	assert(found);
+	(void)found;
 
 	assert(cached->cached_state_locks > 0);
 	cached->cached_state_locks--;
@@ -1506,6 +1511,7 @@ void wlr_surface_synced_finish(struct wlr_surface_synced *synced) {
 		}
 	}
 	assert(found);
+	(void)found;
 
 	struct wlr_surface_state *cached;
 	wl_list_for_each(cached, &surface->cached, cached_state_link) {

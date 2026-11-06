@@ -55,26 +55,18 @@ static float color_to_linear_premult(float non_linear, float alpha) {
 	return (alpha == 0) ? 0 : color_to_linear(non_linear / alpha) * alpha;
 }
 
-static void encode_proj_matrix(const float mat3[9], float mat4[4][4]) {
-	float result[4][4] = {
-		{ mat3[0], mat3[1], 0, mat3[2] },
-		{ mat3[3], mat3[4], 0, mat3[5] },
-		{ 0, 0, 1, 0 },
-		{ 0, 0, 0, 1 },
-	};
-
-	memcpy(mat4, result, sizeof(result));
+static inline void encode_proj_matrix(const float mat3[9], float mat4[4][4]) {
+	mat4[0][0] = mat3[0]; mat4[0][1] = mat3[1]; mat4[0][2] = 0.0f; mat4[0][3] = mat3[2];
+	mat4[1][0] = mat3[3]; mat4[1][1] = mat3[4]; mat4[1][2] = 0.0f; mat4[1][3] = mat3[5];
+	mat4[2][0] = 0.0f;    mat4[2][1] = 0.0f;    mat4[2][2] = 1.0f; mat4[2][3] = 0.0f;
+	mat4[3][0] = 0.0f;    mat4[3][1] = 0.0f;    mat4[3][2] = 0.0f; mat4[3][3] = 1.0f;
 }
 
-static void encode_color_matrix(const float mat3[9], float mat4[4][4]) {
-	float result[4][4] = {
-		{ mat3[0], mat3[1], mat3[2], 0 },
-		{ mat3[3], mat3[4], mat3[5], 0 },
-		{ mat3[6], mat3[7], mat3[8], 0 },
-		{ 0, 0, 0, 0 },
-	};
-
-	memcpy(mat4, result, sizeof(result));
+static inline void encode_color_matrix(const float mat3[9], float mat4[4][4]) {
+	mat4[0][0] = mat3[0]; mat4[0][1] = mat3[1]; mat4[0][2] = mat3[2]; mat4[0][3] = 0.0f;
+	mat4[1][0] = mat3[3]; mat4[1][1] = mat3[4]; mat4[1][2] = mat3[5]; mat4[1][3] = 0.0f;
+	mat4[2][0] = mat3[6]; mat4[2][1] = mat3[7]; mat4[2][2] = mat3[8]; mat4[2][3] = 0.0f;
+	mat4[3][0] = 0.0f;    mat4[3][1] = 0.0f;    mat4[3][2] = 0.0f;    mat4[3][3] = 0.0f;
 }
 
 static void render_pass_destroy(struct wlr_vk_render_pass *pass) {
@@ -171,7 +163,12 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 	struct wlr_vk_command_buffer *render_cb = pass->command_buffer;
 	struct wlr_vk_render_buffer *render_buffer = pass->render_buffer;
 	struct wlr_vk_command_buffer *stage_cb = NULL;
+	VkSemaphoreSubmitInfoKHR render_wait_stack[64];
 	VkSemaphoreSubmitInfoKHR *render_wait = NULL;
+	VkImageMemoryBarrier acquire_barriers_stack[32];
+	VkImageMemoryBarrier release_barriers_stack[32];
+	VkImageMemoryBarrier *acquire_barriers = NULL;
+	VkImageMemoryBarrier *release_barriers = NULL;
 	bool device_lost = false;
 
 	if (pass->failed) {
@@ -194,11 +191,9 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 		int height = pass->render_buffer->wlr_buffer->height;
 
 		struct wlr_box output_box = { 0, 0, width, height };
-		float proj[9], final_matrix[9];
-		wlr_matrix_identity(proj);
+		float final_matrix[9];
 		wlr_matrix_project_box(final_matrix, &output_box,
-			WL_OUTPUT_TRANSFORM_NORMAL, proj);
-		wlr_matrix_multiply(final_matrix, pass->projection, final_matrix);
+			WL_OUTPUT_TRANSFORM_NORMAL, pass->projection);
 
 		struct wlr_vk_vert_pcr_data vert_pcr_data = {
 			.uv_off = { 0, 0 },
@@ -312,19 +307,34 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 
 	size_t pass_textures_len = pass->textures.size / sizeof(struct wlr_vk_render_pass_texture);
 	size_t render_wait_cap = (1 + pass_textures_len) * WLR_DMABUF_MAX_PLANES;
-	render_wait = calloc(render_wait_cap, sizeof(*render_wait));
+	if (render_wait_cap <= 64) {
+		render_wait = render_wait_stack;
+	} else {
+		render_wait = calloc(render_wait_cap, sizeof(*render_wait));
+	}
 	if (render_wait == NULL) {
 		wlr_log_errno(WLR_ERROR, "Allocation failed");
 		goto error;
 	}
 
 	uint32_t barrier_count = wl_list_length(&renderer->foreign_textures) + 1;
-	VkImageMemoryBarrier *acquire_barriers = calloc(barrier_count, sizeof(*acquire_barriers));
-	VkImageMemoryBarrier *release_barriers = calloc(barrier_count, sizeof(*release_barriers));
+	if (barrier_count <= 32) {
+		acquire_barriers = acquire_barriers_stack;
+		release_barriers = release_barriers_stack;
+		memset(acquire_barriers, 0, barrier_count * sizeof(*acquire_barriers));
+		memset(release_barriers, 0, barrier_count * sizeof(*release_barriers));
+	} else {
+		acquire_barriers = calloc(barrier_count, sizeof(*acquire_barriers));
+		release_barriers = calloc(barrier_count, sizeof(*release_barriers));
+	}
 	if (acquire_barriers == NULL || release_barriers == NULL) {
 		wlr_log_errno(WLR_ERROR, "Allocation failed");
-		free(acquire_barriers);
-		free(release_barriers);
+		if (acquire_barriers != acquire_barriers_stack) {
+			free(acquire_barriers);
+		}
+		if (release_barriers != release_barriers_stack) {
+			free(release_barriers);
+		}
 		goto error;
 	}
 
@@ -499,8 +509,12 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL,
 		barrier_count, release_barriers);
 
-	free(acquire_barriers);
-	free(release_barriers);
+	if (acquire_barriers != acquire_barriers_stack) {
+		free(acquire_barriers);
+	}
+	if (release_barriers != release_barriers_stack) {
+		free(release_barriers);
+	}
 
 	// No semaphores needed here.
 	// We don't need a semaphore from the stage/transfer submission
@@ -602,7 +616,9 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 		goto error;
 	}
 
-	free(render_wait);
+	if (render_wait != render_wait_stack) {
+		free(render_wait);
+	}
 
 	vulkan_stage_mark_submit(renderer, render_timeline_point);
 
@@ -615,7 +631,9 @@ static bool render_pass_submit(struct wlr_render_pass *wlr_pass) {
 	return true;
 
 error:
-	free(render_wait);
+	if (render_wait != render_wait_stack) {
+		free(render_wait);
+	}
 	vulkan_reset_command_buffer(stage_cb);
 	vulkan_reset_command_buffer(render_cb);
 	wlr_buffer_unlock(render_buffer->wlr_buffer);
@@ -675,10 +693,8 @@ static void render_pass_add_rect(struct wlr_render_pass *wlr_pass,
 
 	switch (options->blend_mode) {
 	case WLR_RENDER_BLEND_MODE_PREMULTIPLIED:;
-		float proj[9], matrix[9];
-		wlr_matrix_identity(proj);
-		wlr_matrix_project_box(matrix, &box, WL_OUTPUT_TRANSFORM_NORMAL, proj);
-		wlr_matrix_multiply(matrix, pass->projection, matrix);
+		float matrix[9];
+		wlr_matrix_project_box(matrix, &box, WL_OUTPUT_TRANSFORM_NORMAL, pass->projection);
 
 		struct wlr_vk_pipeline *pipe = setup_get_or_create_pipeline(
 			pass->render_setup,
@@ -698,14 +714,16 @@ static void render_pass_add_rect(struct wlr_render_pass *wlr_pass,
 			pass->failed = true;
 			break;
 		}
+		const float inv_w = 1.0f / (float)box.width;
+		const float inv_h = 1.0f / (float)box.height;
 		float *instance_data = (float *)((char *)span.buffer->cpu_mapping + span.offset);
 		for (int i = 0; i < clip_rects_len; i++) {
 			const pixman_box32_t *rect = &clip_rects[i];
 			render_pass_mark_box_updated(pass, rect);
-			instance_data[i * 4 + 0] = (float)(rect->x1 - box.x) / box.width;
-			instance_data[i * 4 + 1] = (float)(rect->y1 - box.y) / box.height;
-			instance_data[i * 4 + 2] = (float)(rect->x2 - rect->x1) / box.width;
-			instance_data[i * 4 + 3] = (float)(rect->y2 - rect->y1) / box.height;
+			instance_data[i * 4 + 0] = (float)(rect->x1 - box.x) * inv_w;
+			instance_data[i * 4 + 1] = (float)(rect->y1 - box.y) * inv_h;
+			instance_data[i * 4 + 2] = (float)(rect->x2 - rect->x1) * inv_w;
+			instance_data[i * 4 + 3] = (float)(rect->y2 - rect->y1) * inv_h;
 		}
 
 		struct wlr_vk_vert_pcr_data vert_pcr_data = {
@@ -779,10 +797,8 @@ static void render_pass_add_texture(struct wlr_render_pass *wlr_pass,
 	wlr_render_texture_options_get_dst_box(options, &dst_box);
 	float alpha = wlr_render_texture_options_get_alpha(options);
 
-	float proj[9], matrix[9];
-	wlr_matrix_identity(proj);
-	wlr_matrix_project_box(matrix, &dst_box, options->transform, proj);
-	wlr_matrix_multiply(matrix, pass->projection, matrix);
+	float matrix[9];
+	wlr_matrix_project_box(matrix, &dst_box, options->transform, pass->projection);
 
 	pixman_region32_t clip;
 	if (options->clip) {
@@ -809,14 +825,16 @@ static void render_pass_add_texture(struct wlr_render_pass *wlr_pass,
 		return;
 	}
 
+	const float inv_tex_w = 1.0f / (float)options->texture->width;
+	const float inv_tex_h = 1.0f / (float)options->texture->height;
 	struct wlr_vk_vert_pcr_data vert_pcr_data = {
 		.uv_off = {
-			src_box.x / options->texture->width,
-			src_box.y / options->texture->height,
+			(float)src_box.x * inv_tex_w,
+			(float)src_box.y * inv_tex_h,
 		},
 		.uv_size = {
-			src_box.width / options->texture->width,
-			src_box.height / options->texture->height,
+			(float)src_box.width * inv_tex_w,
+			(float)src_box.height * inv_tex_h,
 		},
 	};
 	encode_proj_matrix(matrix, vert_pcr_data.mat4);
@@ -925,16 +943,18 @@ static void render_pass_add_texture(struct wlr_render_pass *wlr_pass,
 		VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vert_pcr_data),
 		sizeof(frag_pcr_data), &frag_pcr_data);
 
+	const double inv_w = 1.0 / (double)dst_box.width;
+	const double inv_h = 1.0 / (double)dst_box.height;
 	float *instance_data = (float *)((char *)span.buffer->cpu_mapping + span.offset);
 	for (int i = 0; i < clip_rects_len; i++) {
 		const pixman_box32_t *rect = &clip_rects[i];
 		render_pass_mark_box_updated(pass, rect);
 
 		struct wlr_fbox norm = {
-			.x = (double)(rect->x1 - dst_box.x) / dst_box.width,
-			.y = (double)(rect->y1 - dst_box.y) / dst_box.height,
-			.width = (double)(rect->x2 - rect->x1) / dst_box.width,
-			.height = (double)(rect->y2 - rect->y1) / dst_box.height,
+			.x = (double)(rect->x1 - dst_box.x) * inv_w,
+			.y = (double)(rect->y1 - dst_box.y) * inv_h,
+			.width = (double)(rect->x2 - rect->x1) * inv_w,
+			.height = (double)(rect->y2 - rect->y1) * inv_h,
 		};
 
 		if (options->transform != WL_OUTPUT_TRANSFORM_NORMAL) {

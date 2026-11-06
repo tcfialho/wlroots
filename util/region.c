@@ -19,9 +19,13 @@ void wlr_region_scale_xy(pixman_region32_t *dst, const pixman_region32_t *src,
 	int nrects;
 	const pixman_box32_t *src_rects = pixman_region32_rectangles(src, &nrects);
 
-	pixman_box32_t *dst_rects = malloc(nrects * sizeof(pixman_box32_t));
-	if (dst_rects == NULL) {
-		return;
+	pixman_box32_t stack_rects[32];
+	pixman_box32_t *dst_rects = stack_rects;
+	if (nrects > 32) {
+		dst_rects = malloc(nrects * sizeof(pixman_box32_t));
+		if (dst_rects == NULL) {
+			return;
+		}
 	}
 
 	for (int i = 0; i < nrects; ++i) {
@@ -33,7 +37,10 @@ void wlr_region_scale_xy(pixman_region32_t *dst, const pixman_region32_t *src,
 
 	pixman_region32_fini(dst);
 	pixman_region32_init_rects(dst, dst_rects, nrects);
-	free(dst_rects);
+
+	if (dst_rects != stack_rects) {
+		free(dst_rects);
+	}
 }
 
 void wlr_region_transform(pixman_region32_t *dst, const pixman_region32_t *src,
@@ -46,9 +53,13 @@ void wlr_region_transform(pixman_region32_t *dst, const pixman_region32_t *src,
 	int nrects;
 	const pixman_box32_t *src_rects = pixman_region32_rectangles(src, &nrects);
 
-	pixman_box32_t *dst_rects = malloc(nrects * sizeof(pixman_box32_t));
-	if (dst_rects == NULL) {
-		return;
+	pixman_box32_t stack_rects[32];
+	pixman_box32_t *dst_rects = stack_rects;
+	if (nrects > 32) {
+		dst_rects = malloc(nrects * sizeof(pixman_box32_t));
+		if (dst_rects == NULL) {
+			return;
+		}
 	}
 
 	for (int i = 0; i < nrects; ++i) {
@@ -106,7 +117,10 @@ void wlr_region_transform(pixman_region32_t *dst, const pixman_region32_t *src,
 
 	pixman_region32_fini(dst);
 	pixman_region32_init_rects(dst, dst_rects, nrects);
-	free(dst_rects);
+
+	if (dst_rects != stack_rects) {
+		free(dst_rects);
+	}
 }
 
 void wlr_region_expand(pixman_region32_t *dst, const pixman_region32_t *src,
@@ -121,9 +135,13 @@ void wlr_region_expand(pixman_region32_t *dst, const pixman_region32_t *src,
 	int nrects;
 	const pixman_box32_t *src_rects = pixman_region32_rectangles(src, &nrects);
 
-	pixman_box32_t *dst_rects = malloc(nrects * sizeof(pixman_box32_t));
-	if (dst_rects == NULL) {
-		return;
+	pixman_box32_t stack_rects[32];
+	pixman_box32_t *dst_rects = stack_rects;
+	if (nrects > 32) {
+		dst_rects = malloc(nrects * sizeof(pixman_box32_t));
+		if (dst_rects == NULL) {
+			return;
+		}
 	}
 
 	for (int i = 0; i < nrects; ++i) {
@@ -135,7 +153,10 @@ void wlr_region_expand(pixman_region32_t *dst, const pixman_region32_t *src,
 
 	pixman_region32_fini(dst);
 	pixman_region32_init_rects(dst, dst_rects, nrects);
-	free(dst_rects);
+
+	if (dst_rects != stack_rects) {
+		free(dst_rects);
+	}
 }
 
 void wlr_region_rotated_bounds(pixman_region32_t *dst, const pixman_region32_t *src,
@@ -148,9 +169,13 @@ void wlr_region_rotated_bounds(pixman_region32_t *dst, const pixman_region32_t *
 	int nrects;
 	const pixman_box32_t *src_rects = pixman_region32_rectangles(src, &nrects);
 
-	pixman_box32_t *dst_rects = malloc(nrects * sizeof(pixman_box32_t));
-	if (dst_rects == NULL) {
-		return;
+	pixman_box32_t stack_rects[32];
+	pixman_box32_t *dst_rects = stack_rects;
+	if (nrects > 32) {
+		dst_rects = malloc(nrects * sizeof(pixman_box32_t));
+		if (dst_rects == NULL) {
+			return;
+		}
 	}
 
 	for (int i = 0; i < nrects; ++i) {
@@ -184,7 +209,10 @@ void wlr_region_rotated_bounds(pixman_region32_t *dst, const pixman_region32_t *
 
 	pixman_region32_fini(dst);
 	pixman_region32_init_rects(dst, dst_rects, nrects);
-	free(dst_rects);
+
+	if (dst_rects != stack_rects) {
+		free(dst_rects);
+	}
 }
 
 static void region_confine(const pixman_region32_t *region, double x1, double y1, double x2,

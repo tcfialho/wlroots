@@ -222,6 +222,7 @@ static void linux_dmabuf_feedback_v1_handle_tranche_formats(void *data,
 
 	size_t table_cap = feedback_data->format_table_size /
 		sizeof(struct wlr_wl_linux_dmabuf_v1_table_entry);
+	(void)table_cap;
 	uint16_t *index_ptr;
 	wl_array_for_each(index_ptr, indices_arr) {
 		assert(*index_ptr < table_cap);

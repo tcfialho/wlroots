@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <wlr/util/box.h>
 
 static void test_box_empty(void) {
@@ -21,6 +22,7 @@ static void test_box_empty(void) {
 	// Valid box
 	box = (struct wlr_box){ .x = 0, .y = 0, .width = 10, .height = 10 };
 	assert(!wlr_box_empty(&box));
+	(void)box;
 }
 
 static void test_box_intersection(void) {
@@ -41,6 +43,7 @@ static void test_box_intersection(void) {
 	// Touching edges
 	b = (struct wlr_box){ .x = 100, .y = 0, .width = 50, .height = 50 };
 	assert(!wlr_box_intersection(&dest, &a, &b));
+	(void)b;
 
 	// Self-intersection
 	assert(wlr_box_intersection(&dest, &a, &a));
@@ -50,10 +53,13 @@ static void test_box_intersection(void) {
 	// Empty input
 	struct wlr_box empty = { .x = 0, .y = 0, .width = 0, .height = 0 };
 	assert(!wlr_box_intersection(&dest, &a, &empty));
+	(void)empty;
 
 	// NULL input
 	assert(!wlr_box_intersection(&dest, &a, NULL));
 	assert(!wlr_box_intersection(&dest, NULL, &a));
+	(void)dest;
+	(void)a;
 }
 
 static void test_box_intersects_box(void) {
@@ -69,6 +75,7 @@ static void test_box_intersects_box(void) {
 	// Touching edges
 	b = (struct wlr_box){ .x = 100, .y = 0, .width = 50, .height = 50 };
 	assert(!wlr_box_intersects(&a, &b));
+	(void)b;
 
 	// Self-intersection
 	assert(wlr_box_intersects(&a, &a));
@@ -76,10 +83,12 @@ static void test_box_intersects_box(void) {
 	// Empty input
 	struct wlr_box empty = { .x = 0, .y = 0, .width = 0, .height = 0 };
 	assert(!wlr_box_intersects(&a, &empty));
+	(void)empty;
 
 	// NULL input
 	assert(!wlr_box_intersects(&a, NULL));
 	assert(!wlr_box_intersects(NULL, &a));
+	(void)a;
 }
 
 static void test_box_contains_point(void) {
@@ -99,10 +108,12 @@ static void test_box_contains_point(void) {
 	// Outside
 	assert(!wlr_box_contains_point(&box, 5, 40));
 	assert(!wlr_box_contains_point(&box, 50, 15));
+	(void)box;
 
 	// Empty box
 	struct wlr_box empty = { .x = 0, .y = 0, .width = 0, .height = 0 };
 	assert(!wlr_box_contains_point(&empty, 0, 0));
+	(void)empty;
 
 	// NULL
 	assert(!wlr_box_contains_point(NULL, 0, 0));
@@ -121,6 +132,7 @@ static void test_box_contains_box(void) {
 	// Partial overlap — not contained
 	struct wlr_box partial = { .x = 50, .y = 50, .width = 100, .height = 100 };
 	assert(!wlr_box_contains_box(&outer, &partial));
+	(void)partial;
 
 	// Empty inner
 	struct wlr_box empty = { .x = 0, .y = 0, .width = 0, .height = 0 };
@@ -128,10 +140,13 @@ static void test_box_contains_box(void) {
 
 	// Empty outer
 	assert(!wlr_box_contains_box(&empty, &inner));
+	(void)inner;
+	(void)empty;
 
 	// NULL
 	assert(!wlr_box_contains_box(&outer, NULL));
 	assert(!wlr_box_contains_box(NULL, &outer));
+	(void)outer;
 }
 
 int main(void) {

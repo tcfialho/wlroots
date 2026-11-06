@@ -1936,7 +1936,14 @@ bool commit_drm_device(struct wlr_drm_backend *drm,
 		return false;
 	}
 
-	struct wlr_drm_connector_state *conn_states = calloc(output_states_len, sizeof(conn_states[0]));
+	struct wlr_drm_connector_state conn_states_stack[8];
+	struct wlr_drm_connector_state *conn_states = NULL;
+	if (output_states_len <= 8) {
+		conn_states = conn_states_stack;
+		memset(conn_states, 0, output_states_len * sizeof(conn_states[0]));
+	} else {
+		conn_states = calloc(output_states_len, sizeof(conn_states[0]));
+	}
 	if (conn_states == NULL) {
 		return false;
 	}
@@ -1999,7 +2006,9 @@ out:
 	for (size_t i = 0; i < conn_states_len; i++) {
 		drm_connector_state_finish(&conn_states[i]);
 	}
-	free(conn_states);
+	if (conn_states != conn_states_stack) {
+		free(conn_states);
+	}
 	return ok;
 }
 

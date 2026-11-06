@@ -48,6 +48,10 @@ struct wlr_addon *wlr_addon_find(struct wlr_addon_set *set, const void *owner,
 	struct wlr_addon *addon;
 	wl_list_for_each(addon, &set->addons, link) {
 		if (addon->owner == owner && addon->impl == impl) {
+			if (set->addons.next != &addon->link) {
+				wl_list_remove(&addon->link);
+				wl_list_insert(&set->addons, &addon->link);
+			}
 			return addon;
 		}
 	}
