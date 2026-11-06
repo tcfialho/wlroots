@@ -300,12 +300,17 @@ void vulkan_stage_buffer_reclaim(struct wlr_vk_stage_buffer *buf,
 
 VkDeviceSize vulkan_stage_buffer_alloc(struct wlr_vk_stage_buffer *buf,
 		VkDeviceSize size, VkDeviceSize alignment) {
+	assert(alignment > 0);
 	VkDeviceSize head = buf->head;
 
-	// Round up to the next multiple of alignment
-	VkDeviceSize rem = head % alignment;
-	if (rem != 0) {
-		head += alignment - rem;
+	// Round up to next multiple of alignment (alignment is always a power of 2 in Vulkan)
+	if ((alignment & (alignment - 1)) == 0) {
+		head = (head + alignment - 1) & ~(alignment - 1);
+	} else {
+		VkDeviceSize rem = head % alignment;
+		if (rem != 0) {
+			head += alignment - rem;
+		}
 	}
 
 	VkDeviceSize end = head >= buf->tail ? buf->buf_size : buf->tail;
